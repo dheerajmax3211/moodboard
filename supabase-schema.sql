@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS boards (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
+    deletion_password_hash TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

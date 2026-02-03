@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { toggleImageSelection, updateImageComment, updateImageLabel, deleteImage } from '../lib/supabase';
+import { toggleImageSelection, updateImageComment, updateImageLabel, deleteImage, verifyDeletionPassword } from '../lib/supabase';
 import { useToast } from './Toast';
 
 export default function ImageCard({
@@ -8,6 +8,7 @@ export default function ImageCard({
     index,
     totalImages,
     labels = [],
+    boardId,
     onUpdate,
     onDelete
 }) {
@@ -18,6 +19,12 @@ export default function ImageCard({
     const [showDetails, setShowDetails] = useState(false);
     const [comment, setComment] = useState(image.comment || '');
     const [isSavingComment, setIsSavingComment] = useState(false);
+
+    // Deletion password modal
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deletionPassword, setDeletionPassword] = useState('');
+    const [isVerifyingDelete, setIsVerifyingDelete] = useState(false);
+
     const toast = useToast();
 
     // Calculate image number (newest first, so reverse the index)
@@ -43,24 +50,44 @@ export default function ImageCard({
         }
     }, [image, isSelected, isUpdating, onUpdate, toast]);
 
-    const handleDelete = useCallback(async (e) => {
+    // Open delete confirmation modal
+    const handleDeleteClick = useCallback((e) => {
         e.stopPropagation();
-        if (isDeleting) return;
+        setDeletionPassword('');
+        setShowDeleteModal(true);
+    }, []);
 
-        if (!confirm('Delete this image?')) return;
+    // Verify deletion password and delete
+    const handleConfirmDelete = useCallback(async (e) => {
+        e.preventDefault();
+        if (isVerifyingDelete || !deletionPassword.trim()) return;
 
-        setIsDeleting(true);
+        setIsVerifyingDelete(true);
         try {
+            // Verify deletion password
+            const result = await verifyDeletionPassword(boardId, deletionPassword);
+
+            if (!result.success) {
+                toast.error(result.error || 'Incorrect deletion password');
+                setIsVerifyingDelete(false);
+                return;
+            }
+
+            // Password verified, proceed with deletion
+            setIsDeleting(true);
             await deleteImage(image.id);
             onDelete(image.id);
             toast.success('Image deleted');
+            setShowDeleteModal(false);
+            setShowDetails(false);
         } catch (error) {
             toast.error('Failed to delete image');
             console.error('Delete error:', error);
         } finally {
+            setIsVerifyingDelete(false);
             setIsDeleting(false);
         }
-    }, [image.id, isDeleting, onDelete, toast]);
+    }, [boardId, deletionPassword, image.id, isVerifyingDelete, onDelete, toast]);
 
     const handleSaveComment = useCallback(async () => {
         if (isSavingComment) return;
@@ -134,7 +161,7 @@ export default function ImageCard({
                     <div className="image-card-actions">
                         <button
                             className="image-card-delete"
-                            onClick={handleDelete}
+                            onClick={handleDeleteClick}
                             disabled={isDeleting}
                             title="Delete image"
                         >
@@ -244,11 +271,96 @@ export default function ImageCard({
                                     </button>
                                 </div>
 
+                                {/* Delete Button */}
+                                <div className="image-detail-row" style={{ marginTop: 16 }}>
+                                    <span className="detail-label">Actions</span>
+                                    <button
+                                        className="btn btn-danger"
+                                        onClick={handleDeleteClick}
+                                        disabled={isDeleting}
+                                    >
+                                        🗑 Delete Image
+                                    </button>
+                                </div>
+
                                 {/* File Info */}
                                 <div className="image-file-info">
                                     <span className="text-muted">{image.filename}</span>
                                 </div>
                             </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Delete Confirmation Modal */}
+            <AnimatePresence>
+                {showDeleteModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="modal-backdrop"
+                        onClick={() => setShowDeleteModal(false)}
+                        style={{ zIndex: 1100 }}
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                            className="modal"
+                            onClick={(e) => e.stopPropagation()}
+                            style={{ maxWidth: 380 }}
+                        >
+                            <div className="modal-header">
+                                <h2>🔐 Delete Image</h2>
+                                <button
+                                    className="btn btn-ghost btn-icon"
+                                    onClick={() => setShowDeleteModal(false)}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleConfirmDelete}>
+                                <div className="modal-body">
+                                    <p style={{ marginBottom: 16, color: 'var(--text-secondary)' }}>
+                                        Enter the deletion password to remove this image.
+                                    </p>
+                                    <div className="input-group">
+                                        <label htmlFor="deletionPwd">Deletion Password</label>
+                                        <input
+                                            id="deletionPwd"
+                                            type="password"
+                                            className="input"
+                                            placeholder="Enter deletion password"
+                                            value={deletionPassword}
+                                            onChange={(e) => setDeletionPassword(e.target.value)}
+                                            autoFocus
+                                            required
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="modal-footer">
+                                    <button
+                                        type="button"
+                                        className="btn btn-secondary"
+                                        onClick={() => setShowDeleteModal(false)}
+                                        disabled={isVerifyingDelete}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="btn btn-danger"
+                                        disabled={isVerifyingDelete || !deletionPassword.trim()}
+                                    >
+                                        {isVerifyingDelete ? 'Verifying...' : 'Delete'}
+                                    </button>
+                                </div>
+                            </form>
                         </motion.div>
                     </motion.div>
                 )}

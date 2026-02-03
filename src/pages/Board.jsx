@@ -382,6 +382,7 @@ export default function Board() {
                                     index={index}
                                     totalImages={filteredImages.length}
                                     labels={labels}
+                                    boardId={board?.id}
                                     onUpdate={handleImageUpdate}
                                     onDelete={handleImageDelete}
                                 />

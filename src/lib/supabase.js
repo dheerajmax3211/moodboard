@@ -38,13 +38,18 @@ export async function getBoardByName(name) {
     return data;
 }
 
-// Create a new board
-export async function createBoard(name, password) {
+// Create a new board with viewing and deletion passwords
+export async function createBoard(name, password, deletionPassword) {
     const passwordHash = await hashPassword(password);
+    const deletionPasswordHash = await hashPassword(deletionPassword);
 
     const { data, error } = await supabase
         .from('boards')
-        .insert([{ name, password_hash: passwordHash }])
+        .insert([{
+            name,
+            password_hash: passwordHash,
+            deletion_password_hash: deletionPasswordHash
+        }])
         .select()
         .single();
 
@@ -67,6 +72,23 @@ export async function verifyBoardPassword(name, password) {
         return { success: true, board };
     }
     return { success: false, error: 'Incorrect password' };
+}
+
+// Verify deletion password for a board
+export async function verifyDeletionPassword(boardId, deletionPassword) {
+    const { data: board, error } = await supabase
+        .from('boards')
+        .select('deletion_password_hash')
+        .eq('id', boardId)
+        .single();
+
+    if (error || !board) return { success: false, error: 'Board not found' };
+
+    const deletionPasswordHash = await hashPassword(deletionPassword);
+    if (board.deletion_password_hash === deletionPasswordHash) {
+        return { success: true };
+    }
+    return { success: false, error: 'Incorrect deletion password' };
 }
 
 // Delete a board and all its images

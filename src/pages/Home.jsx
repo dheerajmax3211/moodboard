@@ -17,6 +17,7 @@ export default function Home() {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [newBoardName, setNewBoardName] = useState('');
     const [newBoardPassword, setNewBoardPassword] = useState('');
+    const [newDeletionPassword, setNewDeletionPassword] = useState('');
     const [isCreating, setIsCreating] = useState(false);
 
     // Password Modal
@@ -61,13 +62,29 @@ export default function Home() {
             return;
         }
 
+        if (!newDeletionPassword.trim()) {
+            toast.error('Please enter a deletion password');
+            return;
+        }
+
+        if (newDeletionPassword.length < 4) {
+            toast.error('Deletion password must be at least 4 characters');
+            return;
+        }
+
+        if (newBoardPassword === newDeletionPassword) {
+            toast.error('Deletion password must be different from viewing password');
+            return;
+        }
+
         setIsCreating(true);
         try {
-            const board = await createBoard(newBoardName.trim(), newBoardPassword);
+            const board = await createBoard(newBoardName.trim(), newBoardPassword, newDeletionPassword);
             toast.success(`Board "${board.name}" created!`);
             setShowCreateModal(false);
             setNewBoardName('');
             setNewBoardPassword('');
+            setNewDeletionPassword('');
             loadBoards();
 
             // Navigate to the new board
@@ -274,19 +291,35 @@ export default function Home() {
                                 />
                             </div>
                             <div className="input-group">
-                                <label htmlFor="boardPassword">Password</label>
+                                <label htmlFor="boardPassword">Viewing Password</label>
                                 <input
                                     id="boardPassword"
                                     type="password"
                                     className="input"
-                                    placeholder="Enter a secure password"
+                                    placeholder="Password for models to view"
                                     value={newBoardPassword}
                                     onChange={(e) => setNewBoardPassword(e.target.value)}
                                     minLength={4}
                                     required
                                 />
                                 <small className="text-muted" style={{ marginTop: 4 }}>
-                                    Share this password with your model to give them access
+                                    Share this with models to give them viewing access
+                                </small>
+                            </div>
+                            <div className="input-group" style={{ marginTop: 16 }}>
+                                <label htmlFor="deletionPassword">Deletion Password</label>
+                                <input
+                                    id="deletionPassword"
+                                    type="password"
+                                    className="input"
+                                    placeholder="Password for deleting images"
+                                    value={newDeletionPassword}
+                                    onChange={(e) => setNewDeletionPassword(e.target.value)}
+                                    minLength={4}
+                                    required
+                                />
+                                <small className="text-muted" style={{ marginTop: 4 }}>
+                                    Keep this private - required to delete images
                                 </small>
                             </div>
                         </form>
