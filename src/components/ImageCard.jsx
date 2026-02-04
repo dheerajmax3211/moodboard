@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toggleImageSelection, updateImageComment, updateImageLabel, deleteImage, verifyDeletionPassword } from '../lib/supabase';
 import { useToast } from './Toast';
@@ -10,7 +10,8 @@ export default function ImageCard({
     labels = [],
     boardId,
     onUpdate,
-    onDelete
+    onDelete,
+    onOpenDetails
 }) {
     const [isSelected, setIsSelected] = useState(image.is_selected);
     const [isUpdating, setIsUpdating] = useState(false);
@@ -24,6 +25,9 @@ export default function ImageCard({
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deletionPassword, setDeletionPassword] = useState('');
     const [isVerifyingDelete, setIsVerifyingDelete] = useState(false);
+    
+    // Fullscreen view
+    const [showFullscreen, setShowFullscreen] = useState(false);
 
     const toast = useToast();
 
@@ -127,7 +131,7 @@ export default function ImageCard({
         <>
             <div
                 className={`image-card ${isSelected ? 'selected' : ''}`}
-                onClick={() => setShowDetails(true)}
+                onClick={() => onOpenDetails && onOpenDetails()}
                 style={{ cursor: 'pointer' }}
             >
                 <img
@@ -207,7 +211,25 @@ export default function ImageCard({
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="modal-header">
-                                <h2>Image #{imageNumber}</h2>
+                                <div className="modal-header-nav">
+                                    <button
+                                        className="btn btn-ghost btn-icon nav-arrow"
+                                        onClick={() => onNavigatePrev && onNavigatePrev()}
+                                        disabled={!hasPrev}
+                                        title="Previous image"
+                                    >
+                                        ←
+                                    </button>
+                                    <h2>Image #{imageNumber}</h2>
+                                    <button
+                                        className="btn btn-ghost btn-icon nav-arrow"
+                                        onClick={() => onNavigateNext && onNavigateNext()}
+                                        disabled={!hasNext}
+                                        title="Next image"
+                                    >
+                                        →
+                                    </button>
+                                </div>
                                 <button
                                     className="btn btn-ghost btn-icon"
                                     onClick={() => setShowDetails(false)}
@@ -217,9 +239,15 @@ export default function ImageCard({
                             </div>
 
                             <div className="modal-body">
-                                {/* Image Preview */}
-                                <div className="image-preview-large">
+                                {/* Image Preview - Click to fullscreen */}
+                                <div 
+                                    className="image-preview-large"
+                                    onClick={() => setShowFullscreen(true)}
+                                    style={{ cursor: 'zoom-in' }}
+                                    title="Click to view fullscreen"
+                                >
                                     <img src={imageUrl} alt={image.filename} />
+                                    <div className="fullscreen-hint">🔍 Click to enlarge</div>
                                 </div>
 
                                 {/* Selection Toggle */}
@@ -362,6 +390,73 @@ export default function ImageCard({
                                 </div>
                             </form>
                         </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Fullscreen Image View */}
+            <AnimatePresence>
+                {showFullscreen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fullscreen-overlay"
+                        onClick={() => setShowFullscreen(false)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Escape') setShowFullscreen(false);
+                            if (e.key === 'ArrowLeft' && hasPrev && onNavigatePrev) onNavigatePrev();
+                            if (e.key === 'ArrowRight' && hasNext && onNavigateNext) onNavigateNext();
+                        }}
+                        tabIndex={0}
+                        ref={(el) => el && el.focus()}
+                    >
+                        {/* Navigation Arrow - Left */}
+                        {hasPrev && (
+                            <button
+                                className="fullscreen-nav-btn fullscreen-nav-prev"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onNavigatePrev && onNavigatePrev();
+                                }}
+                            >
+                                ‹
+                            </button>
+                        )}
+
+                        {/* Image */}
+                        <motion.img
+                            initial={{ scale: 0.8 }}
+                            animate={{ scale: 1 }}
+                            exit={{ scale: 0.8 }}
+                            src={imageUrl}
+                            alt={image.filename}
+                            className="fullscreen-image"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+
+                        {/* Navigation Arrow - Right */}
+                        {hasNext && (
+                            <button
+                                className="fullscreen-nav-btn fullscreen-nav-next"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onNavigateNext && onNavigateNext();
+                                }}
+                            >
+                                ›
+                            </button>
+                        )}
+
+                        {/* Close hint */}
+                        <div className="fullscreen-close-hint">
+                            Click anywhere or press ESC to close • ← → to navigate
+                        </div>
+
+                        {/* Image counter */}
+                        <div className="fullscreen-counter">
+                            {index + 1} / {totalImages}
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>

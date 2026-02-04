@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getBoardByName, verifyBoardPassword, getBoardImages, getBoardLabels } from '../lib/supabase';
+import { getBoardByName, verifyBoardPassword, getBoardImages, getBoardLabels, toggleImageSelection, updateImageComment, updateImageLabel, deleteImage, verifyDeletionPassword } from '../lib/supabase';
 import { useToast } from '../components/Toast';
 import Modal from '../components/Modal';
 import ImageCard from '../components/ImageCard';
@@ -41,6 +41,10 @@ export default function Board() {
     // Filters
     const [activeFilter, setActiveFilter] = useState(FILTER_ALL);
     const [selectedLabelFilter, setSelectedLabelFilter] = useState('');
+    
+    // Selected image for detail view (index in filteredImages, null = no selection)
+    const [selectedImageIndex, setSelectedImageIndex] = useState(null);
+    const [showFullscreen, setShowFullscreen] = useState(false);
 
     // Load board if not passed via state
     useEffect(() => {
@@ -385,6 +389,7 @@ export default function Board() {
                                     boardId={board?.id}
                                     onUpdate={handleImageUpdate}
                                     onDelete={handleImageDelete}
+                                    onOpenDetails={() => setSelectedImageIndex(index)}
                                 />
                             ))}
                         </div>
@@ -418,6 +423,248 @@ export default function Board() {
                 labels={labels}
                 onLabelsChange={handleLabelsChange}
             />
+
+            {/* Image Detail Modal */}
+            <AnimatePresence>
+                {selectedImageIndex !== null && filteredImages[selectedImageIndex] && (() => {
+                    const image = filteredImages[selectedImageIndex];
+                    const imageNumber = filteredImages.length - selectedImageIndex;
+                    const hasPrev = selectedImageIndex > 0;
+                    const hasNext = selectedImageIndex < filteredImages.length - 1;
+                    const imageUrl = image.drive_url;
+                    
+                    return (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="modal-backdrop"
+                            onClick={() => setSelectedImageIndex(null)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Escape') setSelectedImageIndex(null);
+                                if (e.key === 'ArrowLeft' && hasPrev) setSelectedImageIndex(prev => prev - 1);
+                                if (e.key === 'ArrowRight' && hasNext) setSelectedImageIndex(prev => prev + 1);
+                            }}
+                            tabIndex={0}
+                            ref={(el) => el && el.focus()}
+                        >
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                                className="modal image-details-modal"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="modal-header">
+                                    <div className="modal-header-nav">
+                                        <button
+                                            className="btn btn-ghost btn-icon nav-arrow"
+                                            onClick={() => setSelectedImageIndex(prev => prev - 1)}
+                                            disabled={!hasPrev}
+                                            title="Previous image (←)"
+                                        >
+                                            ←
+                                        </button>
+                                        <h2>Image #{imageNumber}</h2>
+                                        <button
+                                            className="btn btn-ghost btn-icon nav-arrow"
+                                            onClick={() => setSelectedImageIndex(prev => prev + 1)}
+                                            disabled={!hasNext}
+                                            title="Next image (→)"
+                                        >
+                                            →
+                                        </button>
+                                    </div>
+                                    <button
+                                        className="btn btn-ghost btn-icon"
+                                        onClick={() => setSelectedImageIndex(null)}
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+
+                                <div className="modal-body">
+                                    {/* Image Preview - Click to fullscreen */}
+                                    <div 
+                                        className="image-preview-large"
+                                        onClick={() => setShowFullscreen(true)}
+                                        style={{ cursor: 'zoom-in' }}
+                                        title="Click to view fullscreen"
+                                    >
+                                        <img src={imageUrl} alt={image.filename} />
+                                        <div className="fullscreen-hint">🔍 Click to enlarge</div>
+                                    </div>
+
+                                    {/* Fullscreen Overlay */}
+                                    <AnimatePresence>
+                                        {showFullscreen && (
+                                            <motion.div
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                exit={{ opacity: 0 }}
+                                                className="fullscreen-overlay"
+                                                onClick={() => setShowFullscreen(false)}
+                                                onKeyDown={(e) => {
+                                                    e.stopPropagation();
+                                                    if (e.key === 'Escape') setShowFullscreen(false);
+                                                    if (e.key === 'ArrowLeft' && hasPrev) {
+                                                        setSelectedImageIndex(prev => prev - 1);
+                                                    }
+                                                    if (e.key === 'ArrowRight' && hasNext) {
+                                                        setSelectedImageIndex(prev => prev + 1);
+                                                    }
+                                                }}
+                                                tabIndex={0}
+                                                ref={(el) => el && el.focus()}
+                                            >
+                                                {/* Navigation Arrow - Left */}
+                                                {hasPrev && (
+                                                    <button
+                                                        className="fullscreen-nav-btn fullscreen-nav-prev"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setSelectedImageIndex(prev => prev - 1);
+                                                        }}
+                                                    >
+                                                        ‹
+                                                    </button>
+                                                )}
+
+                                                {/* Image */}
+                                                <motion.img
+                                                    initial={{ scale: 0.8 }}
+                                                    animate={{ scale: 1 }}
+                                                    exit={{ scale: 0.8 }}
+                                                    src={imageUrl}
+                                                    alt={image.filename}
+                                                    className="fullscreen-image"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                />
+
+                                                {/* Navigation Arrow - Right */}
+                                                {hasNext && (
+                                                    <button
+                                                        className="fullscreen-nav-btn fullscreen-nav-next"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setSelectedImageIndex(prev => prev + 1);
+                                                        }}
+                                                    >
+                                                        ›
+                                                    </button>
+                                                )}
+
+                                                {/* Close hint */}
+                                                <div className="fullscreen-close-hint">
+                                                    Click anywhere or press ESC to close • ← → to navigate
+                                                </div>
+
+                                                {/* Image counter */}
+                                                <div className="fullscreen-counter">
+                                                    {selectedImageIndex + 1} / {filteredImages.length}
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+
+                                    {/* Selection Toggle */}
+                                    <div className="image-detail-row">
+                                        <span className="detail-label">Status</span>
+                                        <button
+                                            className={`btn ${image.is_selected ? 'btn-success' : 'btn-secondary'}`}
+                                            onClick={async () => {
+                                                try {
+                                                    const updated = await toggleImageSelection(image.id, !image.is_selected);
+                                                    handleImageUpdate(updated);
+                                                } catch (error) {
+                                                    toast.error('Failed to update selection');
+                                                }
+                                            }}
+                                        >
+                                            {image.is_selected ? '✓ Selected' : 'Mark as Selected'}
+                                        </button>
+                                    </div>
+
+                                    {/* Label Selection */}
+                                    <div className="image-detail-row">
+                                        <span className="detail-label">Label</span>
+                                        <select
+                                            className="input select"
+                                            value={image.label?.id || ''}
+                                            onChange={async (e) => {
+                                                try {
+                                                    const updated = await updateImageLabel(image.id, e.target.value || null);
+                                                    handleImageUpdate(updated);
+                                                    toast.success(e.target.value ? 'Label applied' : 'Label removed');
+                                                } catch (error) {
+                                                    toast.error('Failed to update label');
+                                                }
+                                            }}
+                                        >
+                                            <option value="">No Label</option>
+                                            {labels.map(label => (
+                                                <option key={label.id} value={label.id}>
+                                                    {label.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {/* Comment */}
+                                    <div className="image-detail-row" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+                                        <span className="detail-label">Comment</span>
+                                        <textarea
+                                            className="input textarea"
+                                            placeholder="Add a note about this image..."
+                                            defaultValue={image.comment || ''}
+                                            onBlur={async (e) => {
+                                                if (e.target.value !== (image.comment || '')) {
+                                                    try {
+                                                        const updated = await updateImageComment(image.id, e.target.value.trim());
+                                                        handleImageUpdate(updated);
+                                                        toast.success('Comment saved');
+                                                    } catch (error) {
+                                                        toast.error('Failed to save comment');
+                                                    }
+                                                }
+                                            }}
+                                            rows={3}
+                                        />
+                                    </div>
+
+                                    {/* Delete Button */}
+                                    <div className="image-detail-row" style={{ borderBottom: 'none', justifyContent: 'center' }}>
+                                        <button
+                                            className="btn btn-danger"
+                                            onClick={async () => {
+                                                const deletionPwd = prompt('Enter deletion password to delete this image:');
+                                                if (!deletionPwd) return;
+                                                
+                                                try {
+                                                    const result = await verifyDeletionPassword(board.id, deletionPwd);
+                                                    if (!result.success) {
+                                                        toast.error('Incorrect deletion password');
+                                                        return;
+                                                    }
+                                                    await deleteImage(image.id);
+                                                    handleImageDelete(image.id);
+                                                    toast.success('Image deleted');
+                                                    setSelectedImageIndex(null);
+                                                } catch (error) {
+                                                    toast.error('Failed to delete image');
+                                                }
+                                            }}
+                                        >
+                                            🗑 Delete Image
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    );
+                })()}
+            </AnimatePresence>
         </motion.div>
     );
 }
