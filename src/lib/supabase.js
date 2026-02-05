@@ -99,6 +99,18 @@ export async function deleteBoard(boardId) {
     return true;
 }
 
+// Update board note
+export async function updateBoardNote(boardId, note) {
+    const { data, error } = await supabase
+        .from('boards')
+        .update({ note })
+        .eq('id', boardId)
+        .select();
+    
+    if (error) throw error;
+    return data?.[0] || null;
+}
+
 // ============ LABEL OPERATIONS ============
 
 // Default label colors

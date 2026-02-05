@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getBoardByName, verifyBoardPassword, getBoardImages, getBoardLabels, toggleImageSelection, updateImageComment, updateImageLabel, deleteImage, verifyDeletionPassword } from '../lib/supabase';
+import { getBoardByName, verifyBoardPassword, getBoardImages, getBoardLabels, toggleImageSelection, updateImageComment, updateImageLabel, deleteImage, verifyDeletionPassword, updateBoardNote } from '../lib/supabase';
 import { useToast } from '../components/Toast';
 import Modal from '../components/Modal';
 import ImageCard from '../components/ImageCard';
@@ -45,6 +45,13 @@ export default function Board() {
     // Selected image for detail view (index in filteredImages, null = no selection)
     const [selectedImageIndex, setSelectedImageIndex] = useState(null);
     const [showFullscreen, setShowFullscreen] = useState(false);
+
+    // Note modal
+    const [showNoteModal, setShowNoteModal] = useState(false);
+    const [note, setNote] = useState('');
+    const [isEditingNote, setIsEditingNote] = useState(false);
+    const [editingNote, setEditingNote] = useState('');
+    const [isSavingNote, setIsSavingNote] = useState(false);
 
     // Load board if not passed via state
     useEffect(() => {
@@ -97,6 +104,18 @@ export default function Board() {
             loadData();
         }
     }, [isAuthenticated, loadData]);
+
+    // Initialize note when board loads and show modal if note exists
+    useEffect(() => {
+        if (board && isAuthenticated) {
+            const boardNote = board.note || '';
+            setNote(boardNote);
+            // Auto-show note modal on load if there's a note
+            if (boardNote.trim()) {
+                setShowNoteModal(true);
+            }
+        }
+    }, [board, isAuthenticated]);
 
     // Password verification
     const handleVerifyPassword = async (e) => {
@@ -249,6 +268,16 @@ export default function Board() {
                         </div>
 
                         <div className="board-header-actions">
+                            <button
+                                className={`btn btn-secondary ${note.trim() ? 'has-note' : ''}`}
+                                onClick={() => {
+                                    setEditingNote(note);
+                                    setShowNoteModal(true);
+                                }}
+                                title={note.trim() ? 'View note' : 'Add note'}
+                            >
+                                📝 Note {note.trim() && <span className="note-indicator">•</span>}
+                            </button>
                             <button
                                 className="btn btn-secondary"
                                 onClick={() => setShowLabelManager(true)}
@@ -423,6 +452,111 @@ export default function Board() {
                 labels={labels}
                 onLabelsChange={handleLabelsChange}
             />
+
+            {/* Note Modal */}
+            <AnimatePresence>
+                {showNoteModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="modal-backdrop"
+                        onClick={() => {
+                            setShowNoteModal(false);
+                            setIsEditingNote(false);
+                        }}
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                            className="modal note-modal"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="modal-header">
+                                <h2>📝 Board Note</h2>
+                                <button
+                                    className="btn btn-ghost btn-icon"
+                                    onClick={() => {
+                                        setShowNoteModal(false);
+                                        setIsEditingNote(false);
+                                    }}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+
+                            <div className="modal-body">
+                                {isEditingNote ? (
+                                    <>
+                                        <textarea
+                                            className="input textarea note-textarea"
+                                            placeholder="Add a note for this board... (e.g., instructions, reminders, selection criteria)"
+                                            value={editingNote}
+                                            onChange={(e) => setEditingNote(e.target.value)}
+                                            rows={8}
+                                            autoFocus
+                                        />
+                                        <div className="note-actions">
+                                            <button
+                                                className="btn btn-secondary"
+                                                onClick={() => {
+                                                    setEditingNote(note);
+                                                    setIsEditingNote(false);
+                                                }}
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                className="btn btn-primary"
+                                                disabled={isSavingNote}
+                                                onClick={async () => {
+                                                    setIsSavingNote(true);
+                                                    try {
+                                                        await updateBoardNote(board.id, editingNote.trim());
+                                                        setNote(editingNote.trim());
+                                                        setIsEditingNote(false);
+                                                        toast.success('Note saved');
+                                                    } catch (error) {
+                                                        console.error('Save note error:', error);
+                                                        toast.error('Failed to save note');
+                                                    } finally {
+                                                        setIsSavingNote(false);
+                                                    }
+                                                }}
+                                            >
+                                                {isSavingNote ? 'Saving...' : '💾 Save Note'}
+                                            </button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="note-content">
+                                            {note.trim() ? (
+                                                <p style={{ whiteSpace: 'pre-wrap' }}>{note}</p>
+                                            ) : (
+                                                <p className="note-empty">No note added yet. Click Edit to add a note.</p>
+                                            )}
+                                        </div>
+                                        <div className="note-actions">
+                                            <button
+                                                className="btn btn-primary"
+                                                onClick={() => {
+                                                    setEditingNote(note);
+                                                    setIsEditingNote(true);
+                                                }}
+                                            >
+                                                ✏️ Edit Note
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Image Detail Modal */}
             <AnimatePresence>

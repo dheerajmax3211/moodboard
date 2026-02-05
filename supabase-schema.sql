@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS boards (
     name TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     deletion_password_hash TEXT NOT NULL,
+    note TEXT DEFAULT '',
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
