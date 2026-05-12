@@ -11,7 +11,11 @@ export default function ImageCard({
     boardId,
     onUpdate,
     onDelete,
-    onOpenDetails
+    onOpenDetails,
+    hasPrev,
+    hasNext,
+    onNavigatePrev,
+    onNavigateNext
 }) {
     const [isSelected, setIsSelected] = useState(image.is_selected);
     const [isUpdating, setIsUpdating] = useState(false);
