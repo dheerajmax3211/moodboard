@@ -78,11 +78,11 @@
 .board-card {
     background: var(--bg-glass);
     backdrop-filter: var(--glass-blur);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-lg);
+    border: var(--glass-border);
+    border-radius: var(--radius-xl);
     padding: var(--space-xl);
     cursor: pointer;
-    transition: all var(--transition-base);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     position: relative;
     overflow: hidden;
 }
@@ -90,24 +90,22 @@
 .board-card::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
+    inset: 0;
     background: var(--gradient-primary);
     opacity: 0;
-    transition: opacity var(--transition-base);
+    transition: opacity 0.4s ease;
+    z-index: -1;
 }
 
 .board-card:hover {
-    background: var(--bg-glass-strong);
+    background: var(--bg-card-hover);
     border-color: var(--border-accent);
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-glow-primary);
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: var(--shadow-medium), var(--shadow-glow-primary);
 }
 
 .board-card:hover::before {
-    opacity: 1;
+    opacity: 0.1;
 }
 
 .board-card-name {

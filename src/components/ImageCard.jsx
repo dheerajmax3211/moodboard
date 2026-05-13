@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { MessageSquare, Trash2, X, AlertCircle, Search, Tag, Image as ImageIcon } from 'lucide-react';
 import { toggleImageSelection, updateImageComment, updateImageLabel, deleteImage, verifyDeletionPassword } from '../lib/supabase';
 import { useToast } from './Toast';
 
@@ -160,8 +161,8 @@ export default function ImageCard({
 
                 {/* Comment Indicator */}
                 {image.comment && (
-                    <div className="image-comment-indicator" title={image.comment}>
-                        💬
+                    <div className="image-comment-indicator" title={image.comment} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', background: 'var(--bg-glass-strong)', backdropFilter: 'var(--glass-blur)', borderRadius: '50%', border: '1px solid var(--border-medium)', color: 'var(--text-primary)' }}>
+                        <MessageSquare size={14} />
                     </div>
                 )}
 
@@ -172,8 +173,9 @@ export default function ImageCard({
                             onClick={handleDeleteClick}
                             disabled={isDeleting}
                             title="Delete image"
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px', background: 'rgba(239, 68, 68, 0.2)', backdropFilter: 'var(--glass-blur)', borderRadius: '50%', border: '1px solid rgba(239, 68, 68, 0.5)', color: 'white', transition: 'all 0.2s' }}
                         >
-                            {isDeleting ? '...' : '🗑'}
+                            {isDeleting ? '...' : <Trash2 size={16} />}
                         </button>
                     </div>
 
