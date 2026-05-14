@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowLeft, Upload, Tags, Image as ImageIcon, CheckCircle, Circle, Lock, Share2, Search, Filter } from 'lucide-react';
 import { getBoardByName, verifyBoardPassword, getBoardImages, getBoardLabels, toggleImageSelection, updateImageComment, updateImageLabel, deleteImage, verifyDeletionPassword, updateBoardNote } from '../lib/supabase';
 import { useToast } from '../components/Toast';
 import Modal from '../components/Modal';
@@ -253,52 +254,60 @@ export default function Board() {
             className="board-page"
         >
             {/* Header */}
-            <header className="board-header">
+            <header className="board-header" style={{ background: 'var(--bg-glass)', backdropFilter: 'var(--glass-blur)', borderBottom: 'var(--glass-border)' }}>
                 <div className="container">
-                    <div className="board-header-content">
-                        <div className="board-header-left">
-                            <button
-                                className="back-btn"
-                                onClick={() => navigate('/')}
-                                title="Back to boards"
-                            >
-                                ←
-                            </button>
-                            <h1 className="board-title">{board?.name}</h1>
+                    <div className="board-header-content" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1.5rem 0' }}>
+                        <div className="board-header-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div className="board-header-left" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <button
+                                    className="back-btn"
+                                    onClick={() => navigate('/')}
+                                    title="Back to boards"
+                                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', borderRadius: '50%', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', color: 'var(--text-primary)', cursor: 'pointer', transition: 'all 0.2s' }}
+                                >
+                                    <ArrowLeft size={20} />
+                                </button>
+                                <h1 className="board-title" style={{ fontSize: '2rem', margin: 0 }}>{board?.name}</h1>
+                            </div>
+
+                            <div className="board-header-actions" style={{ display: 'flex', gap: '0.75rem' }}>
+                                <button
+                                    className={`btn btn-secondary ${note.trim() ? 'has-note' : ''}`}
+                                    onClick={() => {
+                                        setEditingNote(note);
+                                        setShowNoteModal(true);
+                                    }}
+                                    title={note.trim() ? 'View note' : 'Add note'}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                                >
+                                    <Share2 size={18} /> Note {note.trim() && <span className="note-indicator">•</span>}
+                                </button>
+                                <button
+                                    className="btn btn-secondary"
+                                    onClick={() => setShowLabelManager(true)}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                                >
+                                    <Tags size={18} /> Labels
+                                </button>
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={() => setShowUploadModal(true)}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                                >
+                                    <Upload size={18} /> Add Images
+                                </button>
+                            </div>
                         </div>
 
-                        <div className="board-header-actions">
-                            <button
-                                className={`btn btn-secondary ${note.trim() ? 'has-note' : ''}`}
-                                onClick={() => {
-                                    setEditingNote(note);
-                                    setShowNoteModal(true);
-                                }}
-                                title={note.trim() ? 'View note' : 'Add note'}
-                            >
-                                📝 Note {note.trim() && <span className="note-indicator">•</span>}
-                            </button>
-                            <button
-                                className="btn btn-secondary"
-                                onClick={() => setShowLabelManager(true)}
-                            >
-                                🏷️ Labels
-                            </button>
-                            <button
-                                className="btn btn-primary"
-                                onClick={() => setShowUploadModal(true)}
-                            >
-                                📤 Add Images
-                            </button>
-                        </div>
-
-                        <div className="board-stats">
-                            <span className="board-stat">
-                                📷 {totalImages} {totalImages === 1 ? 'image' : 'images'}
-                            </span>
-                            <span className="board-stat selected">
-                                ✓ {selectedImages} selected
-                            </span>
+                        <div className="board-header-bottom" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div className="board-stats" style={{ display: 'flex', gap: '1.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                                <span className="board-stat" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <ImageIcon size={16} /> {totalImages} {totalImages === 1 ? 'image' : 'images'}
+                                </span>
+                                <span className="board-stat selected" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: selectedImages > 0 ? 'var(--accent-success)' : 'inherit' }}>
+                                    <CheckCircle size={16} /> {selectedImages} selected
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -309,38 +318,42 @@ export default function Board() {
                 <div className="container">
                     <div className="filters-content">
                         {/* Selection Filter */}
-                        <div className="filter-group">
-                            <span className="filter-label">Filter:</span>
-                            <div className="filter-buttons">
+                        <div className="filter-group" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <span className="filter-label" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--text-muted)' }}><Filter size={16} /> Filter:</span>
+                            <div className="filter-buttons" style={{ display: 'flex', gap: '0.5rem', background: 'var(--bg-card)', padding: '0.25rem', borderRadius: '0.5rem' }}>
                                 <button
                                     className={`filter-btn ${activeFilter === FILTER_ALL ? 'active' : ''}`}
                                     onClick={() => setActiveFilter(FILTER_ALL)}
+                                    style={{ padding: '0.5rem 1rem', borderRadius: '0.25rem', border: 'none', background: activeFilter === FILTER_ALL ? 'var(--bg-glass-strong)' : 'transparent', color: activeFilter === FILTER_ALL ? 'var(--text-primary)' : 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.2s' }}
                                 >
                                     All
                                 </button>
                                 <button
                                     className={`filter-btn ${activeFilter === FILTER_SELECTED ? 'active' : ''}`}
                                     onClick={() => setActiveFilter(FILTER_SELECTED)}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 1rem', borderRadius: '0.25rem', border: 'none', background: activeFilter === FILTER_SELECTED ? 'var(--accent-success-dim)' : 'transparent', color: activeFilter === FILTER_SELECTED ? 'var(--accent-success)' : 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.2s' }}
                                 >
-                                    ✓ Selected ({selectedImages})
+                                    <CheckCircle size={14} /> Selected ({selectedImages})
                                 </button>
                                 <button
                                     className={`filter-btn ${activeFilter === FILTER_UNSELECTED ? 'active' : ''}`}
                                     onClick={() => setActiveFilter(FILTER_UNSELECTED)}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 1rem', borderRadius: '0.25rem', border: 'none', background: activeFilter === FILTER_UNSELECTED ? 'var(--bg-glass-strong)' : 'transparent', color: activeFilter === FILTER_UNSELECTED ? 'var(--text-primary)' : 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.2s' }}
                                 >
-                                    Not Selected
+                                    <Circle size={14} /> Not Selected
                                 </button>
                             </div>
                         </div>
 
                         {/* Label Filter */}
                         {labels.length > 0 && (
-                            <div className="filter-group">
-                                <span className="filter-label">Label:</span>
+                            <div className="filter-group" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <span className="filter-label" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--text-muted)' }}><Tags size={16} /> Label:</span>
                                 <select
                                     className="input select filter-select"
                                     value={selectedLabelFilter}
                                     onChange={(e) => setSelectedLabelFilter(e.target.value)}
+                                    style={{ padding: '0.5rem 2rem 0.5rem 1rem', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: '0.5rem', color: 'var(--text-primary)' }}
                                 >
                                     <option value="">All Labels</option>
                                     {labels.map(label => (
@@ -379,19 +392,28 @@ export default function Board() {
                         >
                             {images.length === 0 ? (
                                 <>
-                                    <div className="empty-state-icon">📸</div>
+                                    <div className="empty-state-icon" style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+                                        <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '50%', border: '1px solid var(--border-medium)' }}>
+                                            <ImageIcon size={40} style={{ color: 'var(--text-muted)' }} />
+                                        </div>
+                                    </div>
                                     <h3>No images yet</h3>
                                     <p>Add your first reference images to get started</p>
                                     <button
                                         className="btn btn-primary"
                                         onClick={() => setShowUploadModal(true)}
+                                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
                                     >
-                                        Add Images
+                                        <Upload size={18} /> Add Images
                                     </button>
                                 </>
                             ) : (
                                 <>
-                                    <div className="empty-state-icon">🔍</div>
+                                    <div className="empty-state-icon" style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+                                        <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '50%', border: '1px solid var(--border-medium)' }}>
+                                            <Search size={40} style={{ color: 'var(--text-muted)' }} />
+                                        </div>
+                                    </div>
                                     <h3>No matching images</h3>
                                     <p>Try adjusting your filters</p>
                                     <button
@@ -400,8 +422,9 @@ export default function Board() {
                                             setActiveFilter(FILTER_ALL);
                                             setSelectedLabelFilter('');
                                         }}
+                                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
                                     >
-                                        Clear Filters
+                                        <Filter size={18} /> Clear Filters
                                     </button>
                                 </>
                             )}

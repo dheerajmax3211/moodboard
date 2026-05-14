@@ -11,7 +11,9 @@ function App() {
   return (
     <ToastProvider>
       <BrowserRouter basename={basename}>
-        <div className="animated-bg"></div>
+        <div className="animated-bg">
+          <div className="animated-bg-extra"></div>
+        </div>
         <AnimatePresence mode="wait">
           <Routes>
             <Route path="/" element={<Home />} />

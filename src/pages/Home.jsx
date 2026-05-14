@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Sparkles, ClipboardList, Lock, Shield, Plus, ArrowRight } from 'lucide-react';
 import { getAllBoards, createBoard, verifyBoardPassword } from '../lib/supabase';
 import { useToast } from '../components/Toast';
 import Modal from '../components/Modal';
@@ -153,34 +154,49 @@ export default function Home() {
         >
             {/* Hero Section */}
             <section className="hero">
-                <div className="container">
+                <div className="container" style={{ position: 'relative', zIndex: 1 }}>
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.5, ease: "easeOut" }}
+                        style={{ display: 'inline-block', marginBottom: '1rem', padding: '0.5rem 1rem', background: 'var(--bg-glass)', border: '1px solid var(--border-accent)', borderRadius: '2rem', color: 'var(--accent-primary)', fontSize: '0.875rem', fontWeight: 500, letterSpacing: '0.5px' }}
+                    >
+                        <Sparkles size={14} style={{ display: 'inline', marginRight: '6px', verticalAlign: 'text-top' }} />
+                        The New Standard for Creative Collaboration
+                    </motion.div>
                     <motion.h1
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 }}
+                        transition={{ delay: 0.1, duration: 0.6 }}
                         className="hero-title"
+                        style={{ fontSize: '4rem', fontWeight: 800, letterSpacing: '-1px', marginBottom: '1.5rem', lineHeight: 1.1 }}
                     >
-                        Moodboards
+                        Elevate Your <br />
+                        <span style={{ color: 'var(--text-primary)', background: 'none', WebkitTextFillColor: 'initial' }}>Visual Workflow</span>
                     </motion.h1>
                     <motion.p
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
+                        transition={{ delay: 0.2, duration: 0.6 }}
                         className="hero-subtitle"
+                        style={{ fontSize: '1.25rem', maxWidth: '700px', margin: '0 auto 2.5rem' }}
                     >
-                        Create beautiful reference boards for your models.
-                        Upload inspiration, share securely, collaborate effortlessly.
+                        Create beautiful, secure reference boards for models and teams.
+                        Upload inspiration, manage selections, and collaborate with seamless elegance.
                     </motion.p>
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 }}
+                        transition={{ delay: 0.3, duration: 0.6 }}
+                        style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}
                     >
                         <button
                             className="btn btn-primary"
                             onClick={() => setShowCreateModal(true)}
+                            style={{ padding: '1rem 2rem', fontSize: '1.1rem', borderRadius: '3rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                         >
-                            ✨ Create New Board
+                            <Plus size={20} />
+                            Create New Board
                         </button>
                     </motion.div>
                 </div>
@@ -191,7 +207,7 @@ export default function Home() {
                 <div className="container">
                     <div className="section-header">
                         <h2 className="section-title">
-                            <span className="icon">📋</span>
+                            <ClipboardList className="text-primary" size={28} style={{ color: 'var(--accent-primary)' }} />
                             Your Boards
                         </h2>
                     </div>
@@ -208,13 +224,19 @@ export default function Home() {
                             animate={{ opacity: 1, y: 0 }}
                             className="empty-state"
                         >
-                            <div className="empty-state-icon">🎨</div>
+                            <div className="empty-state-icon" style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+                                <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '50%', border: '1px solid var(--border-medium)' }}>
+                                    <Sparkles size={40} style={{ color: 'var(--text-muted)' }} />
+                                </div>
+                            </div>
                             <h3>No boards yet</h3>
                             <p>Create your first moodboard to get started</p>
                             <button
                                 className="btn btn-primary"
                                 onClick={() => setShowCreateModal(true)}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
                             >
+                                <Plus size={18} />
                                 Create Board
                             </button>
                         </motion.div>
@@ -232,9 +254,11 @@ export default function Home() {
                                     >
                                         <h3 className="board-card-name">{board.name}</h3>
                                         <p className="board-card-meta">
-                                            🔒 Created {formatDate(board.created_at)}
+                                            <Lock size={14} /> Created {formatDate(board.created_at)}
                                         </p>
-                                        <span className="board-card-icon">→</span>
+                                        <span className="board-card-icon">
+                                            <ArrowRight size={20} />
+                                        </span>
                                     </motion.div>
                                 ))}
                             </AnimatePresence>
@@ -249,7 +273,12 @@ export default function Home() {
                     <Modal
                         isOpen={showCreateModal}
                         onClose={() => setShowCreateModal(false)}
-                        title="Create New Board"
+                        title={
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <Plus size={20} className="text-primary" style={{ color: 'var(--accent-primary)' }} />
+                                Create New Board
+                            </div>
+                        }
                         footer={
                             <>
                                 <button
@@ -292,32 +321,40 @@ export default function Home() {
                             </div>
                             <div className="input-group">
                                 <label htmlFor="boardPassword">Viewing Password</label>
-                                <input
-                                    id="boardPassword"
-                                    type="password"
-                                    className="input"
-                                    placeholder="Password for models to view"
-                                    value={newBoardPassword}
-                                    onChange={(e) => setNewBoardPassword(e.target.value)}
-                                    minLength={4}
-                                    required
-                                />
-                                <small className="text-muted" style={{ marginTop: 4 }}>
+                                <div style={{ position: 'relative' }}>
+                                    <Lock size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                                    <input
+                                        id="boardPassword"
+                                        type="password"
+                                        className="input"
+                                        placeholder="Password for models to view"
+                                        value={newBoardPassword}
+                                        onChange={(e) => setNewBoardPassword(e.target.value)}
+                                        minLength={4}
+                                        required
+                                        style={{ paddingLeft: '36px' }}
+                                    />
+                                </div>
+                                <small className="text-muted" style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                                     Share this with models to give them viewing access
                                 </small>
                             </div>
                             <div className="input-group" style={{ marginTop: 16 }}>
                                 <label htmlFor="deletionPassword">Deletion Password</label>
-                                <input
-                                    id="deletionPassword"
-                                    type="password"
-                                    className="input"
-                                    placeholder="Password for deleting images"
-                                    value={newDeletionPassword}
-                                    onChange={(e) => setNewDeletionPassword(e.target.value)}
-                                    minLength={4}
-                                    required
-                                />
+                                <div style={{ position: 'relative' }}>
+                                    <Shield size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                                    <input
+                                        id="deletionPassword"
+                                        type="password"
+                                        className="input"
+                                        placeholder="Password for deleting images"
+                                        value={newDeletionPassword}
+                                        onChange={(e) => setNewDeletionPassword(e.target.value)}
+                                        minLength={4}
+                                        required
+                                        style={{ paddingLeft: '36px' }}
+                                    />
+                                </div>
                                 <small className="text-muted" style={{ marginTop: 4 }}>
                                     Keep this private - required to delete images
                                 </small>
@@ -333,7 +370,12 @@ export default function Home() {
                     <Modal
                         isOpen={showPasswordModal}
                         onClose={() => setShowPasswordModal(false)}
-                        title={`Access "${selectedBoard.name}"`}
+                        title={
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <Lock size={20} className="text-primary" style={{ color: 'var(--accent-primary)' }} />
+                                Access "{selectedBoard.name}"
+                            </div>
+                        }
                         footer={
                             <>
                                 <button
@@ -363,16 +405,20 @@ export default function Home() {
                         <form onSubmit={handleVerifyPassword}>
                             <div className="input-group">
                                 <label htmlFor="accessPassword">Password</label>
-                                <input
-                                    id="accessPassword"
-                                    type="password"
-                                    className="input"
-                                    placeholder="Enter board password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    autoFocus
-                                    required
-                                />
+                                <div style={{ position: 'relative' }}>
+                                    <Lock size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                                    <input
+                                        id="accessPassword"
+                                        type="password"
+                                        className="input"
+                                        placeholder="Enter board password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        autoFocus
+                                        required
+                                        style={{ paddingLeft: '36px' }}
+                                    />
+                                </div>
                             </div>
                         </form>
                     </Modal>
